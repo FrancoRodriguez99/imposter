@@ -6,8 +6,7 @@ import Lobby from './pages/Lobby.jsx';
 import Game from './pages/Game.jsx';
 
 function getServerUrl() {
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3001`;
+  return window.location.origin;
 }
 
 const LANGS = [
@@ -35,16 +34,21 @@ function LangSwitcher() {
 }
 
 export default function App() {
-  const [page, setPage]           = useState('home');
-  const [roomId, setRoomId]       = useState('');
-  const [isHost, setIsHost]       = useState(false);
-  const [players, setPlayers]     = useState([]);
-  const [gameData, setGameData]   = useState(null);
-  const [gameOver, setGameOver]   = useState(null);
+  const [page, setPage]             = useState('home');
+  const [roomId, setRoomId]         = useState('');
+  const [isHost, setIsHost]         = useState(false);
+  const [players, setPlayers]       = useState([]);
+  const [gameData, setGameData]     = useState(null);
+  const [gameOver, setGameOver]     = useState(null);
   const [roundEnded, setRoundEnded] = useState(null);
   const [guessWrong, setGuessWrong] = useState(false);
-  const [error, setError]         = useState('');
-  const socketRef = useRef(null);
+  const [error, setError]           = useState('');
+  const [myName, setMyName]         = useState('');
+  const [voteData, setVoteData]     = useState({ votes: {}, eliminated: [], threshold: 2 });
+  const [myVote, setMyVote]         = useState(null);
+  const [elimNotice, setElimNotice] = useState(null);
+  const socketRef    = useRef(null);
+  const elimTimerRef = useRef(null);
 
   const initialRoomCode = new URLSearchParams(window.location.search).get('room') || '';
 
@@ -61,10 +65,27 @@ export default function App() {
     socket.on('room-joined',  ({ roomId }) => { setRoomId(roomId); setIsHost(false); setPage('lobby'); });
     socket.on('room-update',  ({ players }) => setPlayers(players));
 
-    socket.on('game-started', (data) => { setGameData(data); setPage('game'); });
+    socket.on('game-started', (data) => {
+      setMyName(data.myName || '');
+      setVoteData({ votes: {}, eliminated: [], threshold: 2 });
+      setMyVote(null);
+      setElimNotice(null);
+      setGameData(data);
+      setPage('game');
+    });
 
-    socket.on('round-ended', (data)  => setRoundEnded(data));
-    socket.on('game-over',   (data)  => setGameOver(data));
+    socket.on('vote-update', (data) => setVoteData(data));
+
+    socket.on('player-eliminated', ({ playerName, wasImpostor, eliminatedNames }) => {
+      setVoteData(prev => ({ ...prev, eliminated: eliminatedNames, votes: {} }));
+      setMyVote(null);
+      if (elimTimerRef.current) clearTimeout(elimTimerRef.current);
+      setElimNotice({ playerName, wasImpostor });
+      elimTimerRef.current = setTimeout(() => setElimNotice(null), 3500);
+    });
+
+    socket.on('round-ended', (data) => setRoundEnded(data));
+    socket.on('game-over',   (data) => setGameOver(data));
 
     socket.on('guess-wrong', () => {
       setGuessWrong(true);
@@ -75,20 +96,32 @@ export default function App() {
       setGameData(null);
       setGameOver(null);
       setRoundEnded(null);
+      setVoteData({ votes: {}, eliminated: [], threshold: 2 });
+      setMyVote(null);
+      setElimNotice(null);
       setPage('lobby');
     });
 
     socket.on('error-msg', ({ message }) => showError(message));
 
-    return () => socket.disconnect();
+    return () => {
+      socket.disconnect();
+      if (elimTimerRef.current) clearTimeout(elimTimerRef.current);
+    };
   }, [showError]);
 
-  const createRoom  = (name)              => socketRef.current?.emit('create-room',  { name });
-  const joinRoom    = (code, name)        => socketRef.current?.emit('join-room',    { roomId: code.toUpperCase(), name });
+  const createRoom  = (name)             => socketRef.current?.emit('create-room',  { name });
+  const joinRoom    = (code, name)       => socketRef.current?.emit('join-room',    { roomId: code.toUpperCase(), name });
   const startGame   = (count, opts = {}) => socketRef.current?.emit('start-game',   { roomId, impostorCount: count, ...opts });
-  const restartGame = ()                  => socketRef.current?.emit('restart-game', { roomId });
-  const endRound    = ()                  => socketRef.current?.emit('end-round',    { roomId });
-  const guessWord   = (guess)             => socketRef.current?.emit('guess-word',   { roomId, guess });
+  const restartGame = ()                 => socketRef.current?.emit('restart-game', { roomId });
+  const endRound    = ()                 => socketRef.current?.emit('end-round',    { roomId });
+  const guessWord   = (guess)            => socketRef.current?.emit('guess-word',   { roomId, guess });
+
+  const castVote = (targetId, targetName) => {
+    const newVote = myVote === targetName ? null : targetName;
+    setMyVote(newVote);
+    socketRef.current?.emit('cast-vote', { roomId, targetId });
+  };
 
   return (
     <div className="app">
@@ -117,10 +150,15 @@ export default function App() {
             gameOver={gameOver}
             roundEnded={roundEnded}
             guessWrong={guessWrong}
+            voteData={voteData}
+            myVote={myVote}
+            myName={myName}
+            elimNotice={elimNotice}
             isHost={isHost}
             onRestart={restartGame}
             onEndRound={endRound}
             onGuess={guessWord}
+            onVote={castVote}
           />
         )}
       </div>

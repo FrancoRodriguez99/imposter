@@ -842,6 +842,179 @@ body {
 }
 .gr-spy { font-size: 1rem; }
 
+/* ── Elimination Notice ───────────────────────────────────── */
+@keyframes slideDownSimple {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.elim-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  width: 100%;
+  animation: slideDownSimple 0.3s ease-out;
+}
+.elim-impostor {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+}
+.elim-innocent {
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+}
+.elim-icon { font-size: 1.4rem; flex-shrink: 0; }
+.elim-body { font-size: 0.85rem; line-height: 1.5; }
+.elim-name { font-weight: 700; color: var(--text); }
+.elim-action { color: var(--text-2); }
+.elim-role { color: var(--text-3); font-style: italic; }
+
+/* ── Vote Card ────────────────────────────────────────────── */
+.vote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.vote-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.vote-hint-text {
+  font-size: 0.7rem;
+  color: var(--text-3);
+}
+.vote-list { display: flex; flex-direction: column; gap: 6px; }
+
+.vote-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+.vote-player-clickable { cursor: pointer; }
+.vote-player-clickable:hover {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.05);
+}
+.vote-player-clickable:active { transform: scale(0.98); }
+.vote-player-voted {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.07);
+}
+.vote-player-out {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+
+.vote-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.vote-name {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.vote-first-dot {
+  font-size: 0.6rem;
+  color: var(--accent);
+}
+.vote-you-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-3);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vote-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.vote-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 10px;
+  padding: 2px 8px;
+  min-width: 24px;
+  text-align: center;
+}
+.vote-mine {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.vote-out-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.vote-footer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.vote-threshold-text {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  font-family: 'Space Mono', monospace;
+}
+
+/* ── Agents Win title override ────────────────────────────── */
+.gameover-title-agents {
+  color: #4ade80 !important;
+  text-shadow: 0 0 30px rgba(74, 222, 128, 0.45) !important;
+}
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-height: 680px) {
   .page-content { padding-top: 14px; }

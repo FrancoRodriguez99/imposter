@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
+const AVATAR_COLORS = ['#7c3aed', '#a855f7', '#6d28d9', '#9333ea', '#c026d3'];
+
 function ImpostorList({ impostors }) {
   return (
     <div className="gr-names">
@@ -52,12 +54,21 @@ function GameOver({ gameOver, isHost, onRestart }) {
   const r = t.roundEnded;
   const impostorLabel = gameOver.impostors.length > 1 ? r.impostorsWere : r.impostorWas;
 
+  const isAgentsWin = gameOver.winner === 'innocents';
+  const icon  = isAgentsWin ? '🔍' : '🕵️';
+  const title = isAgentsWin ? g.agentsTitle : g.impostorsTitle;
+  const subtitle = isAgentsWin
+    ? g.agentsSubtitle
+    : gameOver.endReason === 'impostors-majority'
+      ? g.impostorsMajority
+      : g.impostorsSubtitle;
+
   return (
     <div className="game">
-      <div className="gameover-banner impostor-card card">
-        <div className="gameover-icon">🕵️</div>
-        <div className="gameover-title">{g.title}</div>
-        <p className="gameover-subtitle">{g.subtitle}</p>
+      <div className={`gameover-banner card ${isAgentsWin ? 'innocent-card' : 'impostor-card'}`}>
+        <div className="gameover-icon">{icon}</div>
+        <div className={`gameover-title ${isAgentsWin ? 'gameover-title-agents' : ''}`}>{title}</div>
+        <p className="gameover-subtitle">{subtitle}</p>
       </div>
       <div className="card gameover-reveal">
         <div className="gr-label">{r.wordWas}</div>
@@ -74,7 +85,11 @@ function GameOver({ gameOver, isHost, onRestart }) {
   );
 }
 
-export default function Game({ gameData, gameOver, roundEnded, guessWrong, isHost, onRestart, onEndRound, onGuess }) {
+export default function Game({
+  gameData, gameOver, roundEnded, guessWrong,
+  voteData, myVote, myName, elimNotice,
+  isHost, onRestart, onEndRound, onGuess, onVote,
+}) {
   const { t } = useI18n();
   const g = t.game;
 
@@ -83,6 +98,10 @@ export default function Game({ gameData, gameOver, roundEnded, guessWrong, isHos
 
   const { role, word, hint, players, firstPlayer, teammates } = gameData;
   const isImpostor = role === 'impostor';
+
+  const { votes = {}, eliminated = [], threshold = 2 } = voteData;
+  const isMeEliminated = eliminated.includes(myName);
+  const canVote = !isImpostor && !isMeEliminated;
 
   if (roundEnded) return <RoundEnded roundEnded={roundEnded} isHost={isHost} onRestart={onRestart} />;
   if (gameOver)   return <GameOver   gameOver={gameOver}     isHost={isHost} onRestart={onRestart} />;
@@ -96,6 +115,19 @@ export default function Game({ gameData, gameOver, roundEnded, guessWrong, isHos
 
   return (
     <div className="game">
+      {elimNotice && (
+        <div className={`elim-notice ${elimNotice.wasImpostor ? 'elim-impostor' : 'elim-innocent'}`}>
+          <span className="elim-icon">{elimNotice.wasImpostor ? '🕵️' : '😇'}</span>
+          <div className="elim-body">
+            <span className="elim-name">{elimNotice.playerName}</span>
+            {' '}<span className="elim-action">{g.wasVotedOut}</span>
+            <span className="elim-role">
+              {' — '}{elimNotice.wasImpostor ? g.wasImpostor : g.wasInnocent}
+            </span>
+          </div>
+        </div>
+      )}
+
       {!revealed ? (
         <div className="card reveal-gate">
           <div className="reveal-icon">👁️</div>
@@ -161,16 +193,65 @@ export default function Game({ gameData, gameOver, roundEnded, guessWrong, isHos
             </div>
           )}
 
-          <div className="card players-in-game">
-            <div className="players-in-game-title">{g.playersTitle}</div>
-            <div className="game-player-list">
-              {players.map((p) => (
-                <div key={p.name} className={`game-player-chip ${p.name === firstPlayer ? 'chip-first' : ''}`}>
-                  {p.name === firstPlayer && <span className="chip-star">▶</span>}
-                  {p.name}{p.isHost ? ' 👑' : ''}
-                </div>
-              ))}
+          <div className="card vote-card">
+            <div className="vote-header">
+              <span className="vote-section-title">{g.voteTitle}</span>
+              {canVote && <span className="vote-hint-text">{g.voteHint}</span>}
             </div>
+            <div className="vote-list">
+              {players.map((p, i) => {
+                const isOut       = eliminated.includes(p.name);
+                const voteCount   = votes[p.name] || 0;
+                const iVotedHere  = myVote === p.name;
+                const isMe        = p.name === myName;
+                const clickable   = canVote && !isOut && !isMe;
+
+                return (
+                  <div
+                    key={p.id}
+                    className={[
+                      'vote-player',
+                      isOut        && 'vote-player-out',
+                      iVotedHere && !isOut && 'vote-player-voted',
+                      clickable    && 'vote-player-clickable',
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => clickable && onVote(p.id, p.name)}
+                  >
+                    <div
+                      className="vote-avatar"
+                      style={{ background: isOut ? '#2a2748' : AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                    >
+                      {p.name[0].toUpperCase()}
+                    </div>
+                    <span className="vote-name">
+                      {p.name}{p.isHost ? ' 👑' : ''}
+                      {p.name === firstPlayer && !isOut && (
+                        <span className="vote-first-dot">▶</span>
+                      )}
+                      {isMe && <span className="vote-you-tag">{g.youLabel}</span>}
+                    </span>
+                    <div className="vote-right">
+                      {voteCount > 0 && !isOut && (
+                        <span className="vote-count">{voteCount}</span>
+                      )}
+                      {iVotedHere && !isOut && (
+                        <span className="vote-mine">{g.yourVote}</span>
+                      )}
+                      {isOut && (
+                        <span className="vote-out-label">{g.outLabel}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {canVote && (
+              <div className="vote-footer">
+                <span className="vote-threshold-text">
+                  {g.votesNeeded.replace('{n}', threshold)}
+                </span>
+              </div>
+            )}
           </div>
 
           {isHost && (

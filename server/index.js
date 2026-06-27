@@ -181,6 +181,8 @@ io.on('connection', (socket) => {
     room.firstPlayer = firstPlayer.name;
     room.startedAt   = new Date();
     room.settings    = { impostorCount: finalCount, randomCount: !!randomCount, showImpostors: !!showImpostors };
+    room.votes       = {};
+    room.eliminated  = new Set();
 
     db(
       Game.create({
@@ -219,6 +221,7 @@ io.on('connection', (socket) => {
         impostorCount: finalCount,
         firstPlayer: firstPlayer.name,
         teammates,
+        myName: player.name,
       });
     });
 
@@ -245,6 +248,91 @@ io.on('connection', (socket) => {
     console.log(`[${roomId}] Round ended by host`);
   });
 
+  // ── cast-vote ────────────────────────────────────────────
+  socket.on('cast-vote', ({ roomId, targetId }) => {
+    const room = rooms.get(roomId);
+    if (!room || room.state !== 'playing') return;
+
+    const voter = room.players.find(p => p.id === socket.id);
+    if (!voter || room.eliminated.has(socket.id)) return;
+    if (room.impostors.some(imp => imp.name === voter.name)) return;
+
+    if (room.votes[socket.id] === targetId) {
+      delete room.votes[socket.id];
+    } else {
+      room.votes[socket.id] = targetId;
+    }
+
+    const activePlayers = room.players.filter(p => !room.eliminated.has(p.id));
+    const threshold = Math.floor(activePlayers.length / 2) + 1;
+
+    const tally = {};
+    for (const [vid, tid] of Object.entries(room.votes)) {
+      if (!room.eliminated.has(vid) && activePlayers.some(p => p.id === tid)) {
+        const target = room.players.find(p => p.id === tid);
+        if (target) tally[target.name] = (tally[target.name] || 0) + 1;
+      }
+    }
+
+    const toNames = ids => [...ids].map(id => room.players.find(p => p.id === id)?.name).filter(Boolean);
+
+    io.to(roomId).emit('vote-update', {
+      votes: tally,
+      eliminated: toNames(room.eliminated),
+      threshold,
+      totalActive: activePlayers.length,
+    });
+
+    const elimEntry = Object.entries(tally).find(([, count]) => count >= threshold);
+    if (!elimEntry) return;
+
+    const [elimName] = elimEntry;
+    const elimPlayer = room.players.find(p => p.name === elimName);
+    if (!elimPlayer) return;
+
+    room.eliminated.add(elimPlayer.id);
+    room.votes = {};
+
+    const wasImpostor = room.impostors.some(imp => imp.name === elimName);
+    const eliminatedNames = toNames(room.eliminated);
+
+    io.to(roomId).emit('player-eliminated', { playerName: elimName, wasImpostor, eliminatedNames });
+
+    const activeAfter     = room.players.filter(p => !room.eliminated.has(p.id));
+    const activeImpostors = activeAfter.filter(p => room.impostors.some(imp => imp.name === p.name));
+    const activeInnocents = activeAfter.filter(p => !room.impostors.some(imp => imp.name === p.name));
+    const newThreshold    = Math.floor(activeAfter.length / 2) + 1;
+
+    io.to(roomId).emit('vote-update', {
+      votes: {},
+      eliminated: eliminatedNames,
+      threshold: newThreshold,
+      totalActive: activeAfter.length,
+    });
+
+    let winner    = null;
+    let endReason = null;
+
+    if (activeImpostors.length === 0) {
+      winner = 'innocents'; endReason = 'all-impostors-eliminated';
+    } else if (activeImpostors.length >= activeInnocents.length) {
+      winner = 'impostors'; endReason = 'impostors-majority';
+    }
+
+    if (winner) {
+      room.state = 'gameover';
+      const endedAt         = new Date();
+      const durationSeconds = room.startedAt ? Math.round((endedAt - room.startedAt) / 1000) : null;
+
+      db(Game.findByIdAndUpdate(room.gameId, { endedAt, durationSeconds, winner, endReason }));
+
+      io.to(roomId).emit('game-over', { word: room.word, impostors: room.impostors, winner, endReason });
+      console.log(`[${roomId}] Game over — ${winner} win (${endReason})`);
+    }
+
+    console.log(`[${roomId}] ${elimName} eliminated (wasImpostor: ${wasImpostor})`);
+  });
+
   // ── guess-word ───────────────────────────────────────────
   socket.on('guess-word', ({ roomId, guess }) => {
     const room = rooms.get(roomId);
@@ -260,7 +348,7 @@ io.on('connection', (socket) => {
         : null;
 
       db(Game.findByIdAndUpdate(room.gameId, {
-        endedAt, durationSeconds, winner: 'impostor',
+        endedAt, durationSeconds, winner: 'impostors',
         endReason: 'impostor-guess', impostorGuess: guess.trim(),
       }));
 
@@ -268,7 +356,8 @@ io.on('connection', (socket) => {
         word: room.word,
         impostors: room.impostors,
         firstPlayer: room.firstPlayer,
-        winner: 'impostor',
+        winner: 'impostors',
+        endReason: 'impostor-guess',
       });
       console.log(`[${roomId}] Impostor guessed correctly: "${guess}"`);
     } else {
@@ -288,6 +377,8 @@ io.on('connection', (socket) => {
     delete room.gameId;
     delete room.startedAt;
     delete room.settings;
+    delete room.votes;
+    delete room.eliminated;
     io.to(roomId).emit('game-restarted');
     console.log(`[${roomId}] Restarted`);
   });
