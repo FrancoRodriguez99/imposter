@@ -16,7 +16,7 @@ function ImpostorList({ impostors }) {
   );
 }
 
-function RoundEnded({ roundEnded, isHost, onRestart }) {
+function RoundEnded({ roundEnded, isHost, onRestart, onLeave }) {
   const { t } = useI18n();
   const r = t.roundEnded;
   const impostorLabel = roundEnded.impostors.length > 1 ? r.impostorsWere : r.impostorWas;
@@ -44,11 +44,12 @@ function RoundEnded({ roundEnded, isHost, onRestart }) {
           <p>{r.waitingNew}</p>
         </div>
       )}
+      <button className="btn btn-ghost btn-full" onClick={onLeave}>{r.leaveGame}</button>
     </div>
   );
 }
 
-function GameOver({ gameOver, isHost, onRestart }) {
+function GameOver({ gameOver, isHost, onRestart, onLeave }) {
   const { t } = useI18n();
   const g = t.gameOver;
   const r = t.roundEnded;
@@ -81,6 +82,7 @@ function GameOver({ gameOver, isHost, onRestart }) {
       {isHost && (
         <button className="btn btn-primary btn-full" onClick={onRestart}>{g.startNew}</button>
       )}
+      <button className="btn btn-ghost btn-full" onClick={onLeave}>{g.leaveGame}</button>
     </div>
   );
 }
@@ -88,7 +90,7 @@ function GameOver({ gameOver, isHost, onRestart }) {
 export default function Game({
   gameData, gameOver, roundEnded, guessWrong,
   voteData, myVote, myName, elimNotice,
-  isHost, onRestart, onEndRound, onGuess, onVote,
+  isHost, onRestart, onEndRound, onGuess, onVote, onLeave,
 }) {
   const { t } = useI18n();
   const g = t.game;
@@ -103,8 +105,8 @@ export default function Game({
   const isMeEliminated = eliminated.includes(myName);
   const canVote = !isImpostor && !isMeEliminated;
 
-  if (roundEnded) return <RoundEnded roundEnded={roundEnded} isHost={isHost} onRestart={onRestart} />;
-  if (gameOver)   return <GameOver   gameOver={gameOver}     isHost={isHost} onRestart={onRestart} />;
+  if (roundEnded) return <RoundEnded roundEnded={roundEnded} isHost={isHost} onRestart={onRestart} onLeave={onLeave} />;
+  if (gameOver)   return <GameOver   gameOver={gameOver}     isHost={isHost} onRestart={onRestart} onLeave={onLeave} />;
 
   const handleGuess = (e) => {
     e.preventDefault();
@@ -259,6 +261,7 @@ export default function Game({
               {g.newRound}
             </button>
           )}
+          <button className="leave-game" onClick={onLeave}>{g.leaveGame}</button>
         </>
       )}
     </div>

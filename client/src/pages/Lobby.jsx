@@ -20,7 +20,7 @@ function PlayerItem({ player, index }) {
   );
 }
 
-export default function Lobby({ roomId, isHost, players, onStartGame }) {
+export default function Lobby({ roomId, isHost, players, onStartGame, onLeave }) {
   const { t } = useI18n();
   const l = t.lobby;
 
@@ -148,6 +148,10 @@ export default function Lobby({ roomId, isHost, players, onStartGame }) {
           <p>{l.waitingHost}</p>
         </div>
       )}
+
+      <button className="leave-lobby" onClick={onLeave}>
+        ← {l.leaveRoom}
+      </button>
     </div>
   );
 }

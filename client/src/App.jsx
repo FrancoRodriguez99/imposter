@@ -242,12 +242,7 @@ export default function App() {
       )}
 
       <div className="page-content">
-        <div className="top-bar">
-          {(page === 'lobby' || page === 'game') && (
-            <button className="leave-btn" onClick={leaveRoom}>← Leave</button>
-          )}
-          <LangSwitcher />
-        </div>
+        <LangSwitcher />
 
         {page === 'reconnecting' && (
           <div className="reconnecting-screen">
@@ -264,7 +259,7 @@ export default function App() {
           <Home onCreateRoom={createRoom} onJoinRoom={joinRoom} initialRoomCode={initialRoomCode} />
         )}
         {page === 'lobby' && (
-          <Lobby roomId={roomId} isHost={isHost} players={players} onStartGame={startGame} />
+          <Lobby roomId={roomId} isHost={isHost} players={players} onStartGame={startGame} onLeave={leaveRoom} />
         )}
         {page === 'game' && (
           <Game
@@ -281,6 +276,7 @@ export default function App() {
             onEndRound={endRound}
             onGuess={guessWord}
             onVote={castVote}
+            onLeave={leaveRoom}
           />
         )}
       </div>

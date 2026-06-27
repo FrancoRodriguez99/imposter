@@ -29,6 +29,7 @@ export const translations = {
       startBtn:           'Start Game',
       waitingPlayers:     'Waiting for players…',
       waitingHost:        'Waiting for host to start',
+      leaveRoom:          'Leave Room',
     },
     game: {
       roleReady:      'Your role is ready',
@@ -68,6 +69,7 @@ export const translations = {
       impostorsWere:'The impostors were',
       startNew:     'Start New Round',
       waitingNew:   'Waiting for host to start new round',
+      leaveGame:    'Leave Game',
     },
     gameOver: {
       impostorsTitle:    'IMPOSTOR WINS',
@@ -76,6 +78,7 @@ export const translations = {
       agentsTitle:       'AGENTS WIN',
       agentsSubtitle:    'All impostors have been found.',
       startNew:          'Start New Round',
+      leaveGame:         'Leave Game',
     },
   },
 
@@ -109,6 +112,7 @@ export const translations = {
       startBtn:           'Iniciar partida',
       waitingPlayers:     'Esperando jugadores…',
       waitingHost:        'Esperando al anfitrión',
+      leaveRoom:          'Salir de la sala',
     },
     game: {
       roleReady:      'Tu rol está listo',
@@ -148,6 +152,7 @@ export const translations = {
       impostorsWere:'Los impostores eran',
       startNew:     'Iniciar nueva ronda',
       waitingNew:   'Esperando que el anfitrión empiece nueva ronda',
+      leaveGame:    'Salir de la partida',
     },
     gameOver: {
       impostorsTitle:    'EL IMPOSTOR GANA',
@@ -156,6 +161,7 @@ export const translations = {
       agentsTitle:       'LOS AGENTES GANAN',
       agentsSubtitle:    'Todos los impostores han sido encontrados.',
       startNew:          'Iniciar nueva ronda',
+      leaveGame:         'Salir de la partida',
     },
   },
 
@@ -189,6 +195,7 @@ export const translations = {
       startBtn:           'Inizia partita',
       waitingPlayers:     'In attesa di giocatori…',
       waitingHost:        "In attesa che l'host inizi",
+      leaveRoom:          'Lascia la stanza',
     },
     game: {
       roleReady:      'Il tuo ruolo è pronto',
@@ -228,6 +235,7 @@ export const translations = {
       impostorsWere:'Gli impostori erano',
       startNew:     'Inizia nuovo round',
       waitingNew:   "In attesa che l'host inizi un nuovo round",
+      leaveGame:    'Lascia la partita',
     },
     gameOver: {
       impostorsTitle:    "L'IMPOSTORE VINCE",
@@ -236,6 +244,7 @@ export const translations = {
       agentsTitle:       'GLI AGENTI VINCONO',
       agentsSubtitle:    'Tutti gli impostori sono stati trovati.',
       startNew:          'Inizia nuovo round',
+      leaveGame:         'Lascia la partita',
     },
   },
 };
