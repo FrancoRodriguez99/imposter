@@ -617,24 +617,26 @@ body {
 .role-card {
   width: 100%;
   border-radius: 18px;
-  animation: cardReveal 0.35s ease-out both;
+  /* Opacity-only animation: Chrome Android's GPU rasterizer corrupts gradient
+     colors with low RGB values when transform:scale() forces a compositor layer.
+     Pure opacity avoids rasterization on the GPU layer entirely. */
+  animation: cardReveal 0.3s ease-out both;
 }
 @keyframes cardReveal {
-  /* No opacity — avoids Chrome GPU-compositing-against-black bug */
-  from { transform: scale(0.92) translateY(14px); }
-  to   { transform: scale(1)    translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .impostor-card {
-  /* Solid rgb() stops Chrome compositing the gradient against black */
-  background: linear-gradient(155deg, rgb(28, 6, 6), rgb(16, 14, 22));
+  background: linear-gradient(155deg, rgb(42, 8, 8) 0%, rgb(16, 14, 22) 100%);
   border: 1px solid rgba(220, 38, 38, 0.38);
   box-shadow: 0 0 55px rgba(220, 38, 38, 0.14), inset 0 1px 0 rgba(255,255,255,0.02);
 }
 .innocent-card {
-  background: linear-gradient(155deg, rgb(5, 50, 24), rgb(8, 18, 18));
-  border: 1px solid rgba(34, 197, 94, 0.42);
-  box-shadow: 0 0 55px rgba(34, 197, 94, 0.16), inset 0 1px 0 rgba(255,255,255,0.03);
+  /* Raised from rgb(5,50,24) — Chrome Android clips near-zero R values to black */
+  background: linear-gradient(155deg, rgb(22, 88, 46) 0%, rgb(10, 22, 20) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  box-shadow: 0 0 55px rgba(34, 197, 94, 0.18), inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .role-header {
