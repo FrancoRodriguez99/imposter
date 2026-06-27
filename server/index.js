@@ -154,6 +154,95 @@ io.on('connection', (socket) => {
     console.log(`[${id}] "${name}" joined (${room.players.length} players)`);
   });
 
+  // ── rejoin-room ──────────────────────────────────────────
+  socket.on('rejoin-room', ({ roomId, name }) => {
+    if (!roomId || !name) return;
+
+    const room = rooms.get(roomId.trim().toUpperCase());
+    if (!room) { socket.emit('rejoin-failed', { reason: 'room-not-found' }); return; }
+
+    const player = room.players.find(p => p.name === name.trim());
+    if (!player) { socket.emit('rejoin-failed', { reason: 'player-not-found' }); return; }
+
+    // Clear grace-period timer if pending
+    if (player._reconnectTimer) {
+      clearTimeout(player._reconnectTimer);
+      delete player._reconnectTimer;
+    }
+
+    const oldId    = player.id;
+    player.id      = socket.id;
+    player.offline = false;
+    if (room.host === oldId) { room.host = socket.id; }
+    player.isHost  = room.host === socket.id;
+
+    // Transfer vote slot to new socket id
+    if (room.votes?.[oldId] !== undefined) {
+      room.votes[socket.id] = room.votes[oldId];
+      delete room.votes[oldId];
+    }
+    // Transfer eliminated status
+    if (room.eliminated?.has(oldId)) {
+      room.eliminated.delete(oldId);
+      room.eliminated.add(socket.id);
+    }
+
+    socket.join(roomId);
+    socket.data.roomId = roomId;
+
+    const isHost = room.host === socket.id;
+
+    const toNames = ids =>
+      [...ids].map(id => room.players.find(p => p.id === id)?.name).filter(Boolean);
+
+    if (room.state === 'playing') {
+      const isImpostor = room.impostors.some(imp => imp.name === player.name);
+      const teammates  = (room.settings?.showImpostors && isImpostor)
+        ? room.impostors.filter(imp => imp.name !== player.name).map(imp => imp.name)
+        : null;
+
+      const activePlayers = room.players.filter(p => !room.eliminated.has(p.id));
+      const tally = {};
+      for (const [vid, tid] of Object.entries(room.votes || {})) {
+        if (!room.eliminated.has(vid)) {
+          const target = room.players.find(p => p.id === tid);
+          if (target) tally[target.name] = (tally[target.name] || 0) + 1;
+        }
+      }
+
+      socket.emit('rejoin-success', {
+        roomId,
+        state: 'playing',
+        isHost,
+        players: sanitizePlayers(room),
+        gameData: {
+          role:          isImpostor ? 'impostor' : 'innocent',
+          word:          isImpostor ? null : room.word,
+          hint:          isImpostor ? room.wordHint : null,
+          players:       sanitizePlayers(room),
+          impostorCount: room.settings?.impostorCount,
+          firstPlayer:   room.firstPlayer,
+          teammates,
+          myName:        player.name,
+        },
+        voteData: {
+          votes:       tally,
+          eliminated:  toNames(room.eliminated),
+          threshold:   Math.floor(activePlayers.length / 2) + 1,
+          totalActive: activePlayers.length,
+        },
+      });
+    } else {
+      // lobby or gameover: put them back in lobby view
+      socket.emit('rejoin-success', {
+        roomId, state: 'lobby', isHost, players: sanitizePlayers(room),
+      });
+    }
+
+    io.to(roomId).emit('room-update', { players: sanitizePlayers(room) });
+    console.log(`[${roomId}] "${player.name}" rejoined (state: ${room.state})`);
+  });
+
   // ── start-game ───────────────────────────────────────────
   socket.on('start-game', ({ roomId, impostorCount, randomCount, showImpostors, wordLang }) => {
     const room = rooms.get(roomId);
@@ -177,6 +266,7 @@ io.on('connection', (socket) => {
 
     room.state       = 'playing';
     room.word        = wordObj.word;
+    room.wordHint    = wordObj.hint;
     room.impostors   = impostorPlayers.map(p => ({ name: p.name }));
     room.firstPlayer = firstPlayer.name;
     room.startedAt   = new Date();
@@ -396,6 +486,38 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room) return;
 
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    if (room.state !== 'lobby') {
+      // During an active game: keep the player in the room for 5 min so they can reconnect
+      player.offline = true;
+
+      if (room.host === socket.id) {
+        // Temporarily hand host to the next online player
+        player.isHost = false;
+        const next = room.players.find(p => p.id !== socket.id && !p.offline);
+        if (next) {
+          room.host     = next.id;
+          next.isHost   = true;
+          console.log(`[${roomId}] Host temporarily passed to "${next.name}"`);
+        }
+        io.to(roomId).emit('room-update', { players: sanitizePlayers(room) });
+      }
+
+      player._reconnectTimer = setTimeout(() => {
+        if (!player.offline) return; // already reconnected — skip
+        room.players = room.players.filter(p => p.id !== socket.id);
+        if (room.players.length === 0) { rooms.delete(roomId); return; }
+        io.to(roomId).emit('room-update', { players: sanitizePlayers(room) });
+        console.log(`[${roomId}] "${player.name}" removed after reconnect timeout`);
+      }, 5 * 60 * 1000);
+
+      console.log(`[${roomId}] "${player.name}" offline — grace period started`);
+      return;
+    }
+
+    // Lobby: remove immediately
     room.players = room.players.filter(p => p.id !== socket.id);
 
     if (room.players.length === 0) {
