@@ -456,6 +456,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── leave-room ───────────────────────────────────────────
+  socket.on('leave-room', ({ roomId }) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    if (player._reconnectTimer) { clearTimeout(player._reconnectTimer); }
+
+    room.players = room.players.filter(p => p.id !== socket.id);
+    socket.data.roomId = null;
+    socket.leave(roomId);
+
+    if (room.players.length === 0) { rooms.delete(roomId); return; }
+
+    if (room.host === socket.id) {
+      const next = room.players.find(p => !p.offline) || room.players[0];
+      room.host = next.id;
+      next.isHost = true;
+    }
+
+    io.to(roomId).emit('room-update', { players: sanitizePlayers(room) });
+    console.log(`[${roomId}] "${player.name}" left voluntarily`);
+  });
+
   // ── restart-game ─────────────────────────────────────────
   socket.on('restart-game', ({ roomId }) => {
     const room = rooms.get(roomId);

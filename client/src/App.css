@@ -214,13 +214,37 @@ body {
   text-transform: uppercase;
 }
 
+/* ── Top Bar (lang + leave) ───────────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+.leave-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.leave-btn:hover { border-color: var(--border-2); color: var(--text-2); }
+.leave-btn:active { transform: scale(0.96); }
+
 /* ── Language Switcher ────────────────────────────────────── */
 .lang-switcher {
   display: flex;
   gap: 6px;
-  justify-content: flex-end;
-  width: 100%;
-  margin-bottom: 8px;
 }
 .lang-btn {
   width: 36px;
@@ -570,22 +594,22 @@ body {
 .role-card {
   width: 100%;
   border-radius: 18px;
-  /* overflow:hidden removed — causes black-card bug on iOS Safari with gradient+transform */
-  will-change: transform, opacity;
-  animation: cardReveal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: cardReveal 0.35s ease-out both;
 }
 @keyframes cardReveal {
-  from { opacity: 0.2; transform: scale(0.88) translateY(14px); }
-  to   { opacity: 1;   transform: scale(1)    translateY(0); }
+  /* No opacity — avoids Chrome GPU-compositing-against-black bug */
+  from { transform: scale(0.92) translateY(14px); }
+  to   { transform: scale(1)    translateY(0); }
 }
 
 .impostor-card {
-  background: linear-gradient(155deg, rgba(30, 7, 7, 0.97), rgba(17, 17, 24, 0.99));
+  /* Solid rgb() stops Chrome compositing the gradient against black */
+  background: linear-gradient(155deg, rgb(28, 6, 6), rgb(16, 14, 22));
   border: 1px solid rgba(220, 38, 38, 0.38);
   box-shadow: 0 0 55px rgba(220, 38, 38, 0.14), inset 0 1px 0 rgba(255,255,255,0.02);
 }
 .innocent-card {
-  background: linear-gradient(155deg, rgba(5, 50, 24, 0.98) 0%, rgba(8, 18, 18, 0.98) 100%);
+  background: linear-gradient(155deg, rgb(5, 50, 24), rgb(8, 18, 18));
   border: 1px solid rgba(34, 197, 94, 0.42);
   box-shadow: 0 0 55px rgba(34, 197, 94, 0.16), inset 0 1px 0 rgba(255,255,255,0.03);
 }

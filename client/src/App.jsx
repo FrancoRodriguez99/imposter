@@ -213,6 +213,22 @@ export default function App() {
     socketRef.current?.emit('cast-vote', { roomId, targetId });
   };
 
+  const leaveRoom = () => {
+    socketRef.current?.emit('leave-room', { roomId });
+    clearSession();
+    setRoomId('');
+    setIsHost(false);
+    setPlayers([]);
+    setGameData(null);
+    setGameOver(null);
+    setRoundEnded(null);
+    setVoteData({ votes: {}, eliminated: [], threshold: 2 });
+    setMyVote(null);
+    setElimNotice(null);
+    setPlayerName('');
+    setPage('home');
+  };
+
   return (
     <div className="app">
       <div className="bg-orb bg-orb-1" />
@@ -226,7 +242,12 @@ export default function App() {
       )}
 
       <div className="page-content">
-        <LangSwitcher />
+        <div className="top-bar">
+          {(page === 'lobby' || page === 'game') && (
+            <button className="leave-btn" onClick={leaveRoom}>← Leave</button>
+          )}
+          <LangSwitcher />
+        </div>
 
         {page === 'reconnecting' && (
           <div className="reconnecting-screen">
