@@ -225,11 +225,11 @@ export default function Game({
                     </div>
                     <span className="vote-name">
                       {p.name}{p.isHost ? ' 👑' : ''}
-                      {p.name === firstPlayer && !isOut && (
-                        <span className="vote-first-dot">▶</span>
-                      )}
-                      {isMe && <span className="vote-you-tag">{g.youLabel}</span>}
                     </span>
+                    {p.name === firstPlayer && !isOut && (
+                      <span className="vote-first-dot">▶</span>
+                    )}
+                    {isMe && <span className="vote-you-tag">{g.youLabel}</span>}
                     <div className="vote-right">
                       {voteCount > 0 && !isOut && (
                         <span className="vote-count">{voteCount}</span>
